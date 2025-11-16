@@ -57,12 +57,19 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 	if (!path || path[0] == '\0') {
 		node = vfs::get().lookup("/");
 	} 
+	else if (path[0] == '/') {
+		node = vfs::get().lookup(path);
+	}
 	else {
 		return syscall_result { syscall_result_code::not_supported, 0 };
 	}
 
 	if (!node) {
 		return syscall_result { syscall_result_code::not_found, 0 };
+	}
+
+	if (node->kind() != fs_node_kind::directory) {
+		return syscall_result { syscall_result_code::not_supported, 0 };
 	}
 
 	fat_node *fatnode = (fat_node*) node;
