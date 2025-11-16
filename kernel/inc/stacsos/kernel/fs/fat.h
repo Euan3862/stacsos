@@ -59,6 +59,8 @@ public:
 	virtual shared_ptr<file> open() override { return shared_ptr<file>(new fat_file((fat_filesystem &)fs(), cluster_, data_size_)); }
 	virtual fs_node *mkdir(const char *name) override;
 
+	u64 size() const { return data_size_; } //Return the stored data size for this node (0 for directoriees).
+
 protected:
 	virtual fs_node *resolve_child(const string &name) override;
 
