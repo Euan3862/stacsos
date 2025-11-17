@@ -8,6 +8,7 @@
 #pragma once
 
 #include <stacsos/syscalls.h>
+#include <stacsos/dirent.h>
 
 namespace stacsos {
 struct rw_result {
@@ -74,6 +75,12 @@ public:
 	{
 		auto r = syscall1(syscall_numbers::alloc_mem, size);
 		return alloc_result { r.code, (void *)r.data };
+	}
+
+	static rw_result read_dir(const char *path, struct dirent *buffer, unsigned long max_entries)
+	{
+    	auto r = syscall3(syscall_numbers::readdir, (u64)path, (u64)buffer, max_entries);
+    	return rw_result { r.code, r.data };
 	}
 
 	static syscall_result start_process(const char *path, const char *args) { return syscall2(syscall_numbers::start_process, (u64)path, (u64)args); }
