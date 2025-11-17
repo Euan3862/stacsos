@@ -107,7 +107,7 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 
 		// Checking the length of the file name is below max file name length, and if not truncating it.
 		if (length >= MAX_FILE_NAME_LENGTH) {
-			length = MAX_FILE_NAME_LENGTH - 1;
+			length = MAX_FILE_NAME_LENGTH - 1; //Leaves space for a null terminating character.
 		}
 
 		// Copy directory name into the buffer and adds a null terminator
