@@ -49,7 +49,7 @@ static syscall_result operation_result_to_syscall_result(operation_result &&o)
 	return syscall_result { rc, o.data };
 }
 
-/**
+/*
 * do_readdir 
 *
 * Given an absolute path do_readdir looks up the corresponding
@@ -104,6 +104,11 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 		const auto &nm = child->name();
 
 		size_t length = nm.length();
+
+		// Checking the length of the file name is below max file name length, and if not truncating it.
+		if (length >= MAX_FILE_NAME_LENGTH) {
+			length = MAX_FILE_NAME_LENGTH - 1;
+		}
 
 		// Copy directory name into the buffer and adds a null terminator
 		memops::memcpy(ent.name, nm.c_str(), length);
