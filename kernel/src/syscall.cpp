@@ -49,11 +49,23 @@ static syscall_result operation_result_to_syscall_result(operation_result &&o)
 	return syscall_result { rc, o.data };
 }
 
+/**
+* do_readdir 
+*
+* Given an absolute path do_readdir looks up the corresponding
+* directory node in the VFS, loops over its children and copies directory
+* entry information (dirent information), name, type, size, into a buffer 
+* provided by the function caller.
+*
+* Only accepts absolute paths, an empty path is treated as "/".
+* Returns the number of entries copied or an error code (not found or not supported)
+*/
 static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entries)
 {
 	auto &caller = thread::current().owner();
 	fs_node *node = nullptr;
 
+	// Handling path, if empty its taken as the root, if an absolute path then its looked up
 	if (!path || path[0] == '\0') {
 		node = vfs::get().lookup("/");
 	} 
@@ -68,6 +80,7 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 		return syscall_result { syscall_result_code::not_found, 0 };
 	}
 
+	// Node must be a directory.
 	if (node->kind() != fs_node_kind::directory) {
 		return syscall_result { syscall_result_code::not_supported, 0 };
 	}
@@ -77,10 +90,11 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 		return syscall_result { syscall_result_code::not_supported, 0 };
 	}
 
-	fatnode -> ensure_loaded();
+	fatnode -> ensure_loaded(); //Make sure that the directory contents are populated.
 
-	u64 counter = 0;
+	u64 counter = 0; //Used to track number of entries copied so far.
 
+	// Iterates through directory children up to the max entries limit.
 	for (auto child : fatnode -> children) {
 		if (counter >= max_entries) {
 			break;
@@ -91,14 +105,24 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 
 		size_t length = nm.length();
 
+		// Copy directory name into the buffer and adds a null terminator
 		memops::memcpy(ent.name, nm.c_str(), length);
 		ent.name[length] = 0;
+
+		// Get file type and size
 		ent.type = (child -> kind() == fs_node_kind::directory) ? 'd' : 'f';
 		ent.size = (child -> kind() == fs_node_kind::file) ? (unsigned int)child -> size() : 0;
 
+		/* The user space address where the directory entrty should be written
+		*	Calculated by indexing into the callers buffer which has one entry per file.
+		*/
 		auto &dst = ((dirent*)user_buf) + counter;
-
 		u64 dst_address = (u64)dst;
+
+
+		/*Before writing to destination address, confirming that the address actuallly
+		* belongs to the calling process and is in writable memory region.
+		*/
 		auto *rgn = caller.addrspace().get_region_from_address(dst_address);
 		if (!rgn) {
 			return syscall_result { syscall_result_code::not_supported, 0 };
@@ -112,8 +136,10 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 			return syscall_result { syscall_result_code::not_supported, 0 };
 		}
 
+		// Copy the final directory entry into user space memory.
 		memops::memcpy(dst, &ent, sizeof(ent));
-		++counter;
+
+		++counter; //One entry is written, now advance to the next.
 	}
 
 	return syscall_result { syscall_result_code::ok, counter };
