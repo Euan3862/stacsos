@@ -20,7 +20,6 @@ static void run_command(const char *cmd)
 	while (*cmd && *cmd != ' ' && n < 63) {
 		prog[n++] = *cmd++;
 	}
-
 	prog[n] = 0;
 
 	if (*cmd)
@@ -35,6 +34,7 @@ static void run_command(const char *cmd)
 		}
 		path[n] = 0;
 	} else {
+		//prepend /usr/ to find the program so user commands can be run by name only
 		path[0] = '/'; 
 		path[1] = 'u'; 
 		path[2] = 's'; 
@@ -59,7 +59,6 @@ static void run_command(const char *cmd)
 int main(void)
 {
 	console::get().write("This is the StACSOS shell.\n\n");
-
 	console::get().write("Use the cat program to view the README: cat /docs/README\n\n");
 
 	while (true) {
