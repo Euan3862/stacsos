@@ -91,6 +91,9 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 		return syscall_result { syscall_result_code::not_supported, 0 };
 	}
 
+	// Ensure directory children are loaded from disk before iterating
+	fatnode->ensure_loaded();
+
 	u64 counter = 0; //Used to track number of entries copied so far.
 
 	// Iterates through directory children up to the max entries limit.
@@ -114,7 +117,7 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 		ent.name[length] = 0;
 
 		// Get file type and size
-		ent.type = (child -> kind() == fs_node_kind::directory) ? 'd' : 'f';
+		ent.type = (child -> kind() == fs_node_kind::directory) ? 'D' : 'F';
 		ent.size = (child -> kind() == fs_node_kind::file) ? (unsigned int)child -> size() : 0;
 
 		/* The user space address where the directory entrty should be written
@@ -140,8 +143,10 @@ static syscall_result do_readdir(const char *path, void *user_buf, u64 max_entri
 			return syscall_result { syscall_result_code::not_supported, 0 };
 		}
 
-		// Copy the final directory entry into user space memory.
-		memops::memcpy(dst, &ent, sizeof(ent));
+		// Compute kernel pointer to the backing storage and copy there.
+		u64 offset = dst_address - rgn->base;
+		void *kdst = (char *)rgn->storage->base_address_ptr() + offset;
+		memops::memcpy(kdst, &ent, sizeof(ent));
 
 		++counter; //One entry is written, now advance to the next.
 	}

@@ -63,6 +63,9 @@ public:
 
 	const list<fat_node *> &children() const { return children_; }
 
+	// Public method to ensure directory is loaded before accessing children
+	void ensure_loaded() { load(); }
+
 protected:
 	virtual fs_node *resolve_child(const string &name) override;
 

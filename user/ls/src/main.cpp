@@ -17,11 +17,13 @@ using namespace stacsos;
 */
 static void ls(int long_flag, const char *path)
 {
-    dirent entries[256]; // Buffer to store directory entries up to 256 entries.
+    const int MAX_ENTRIES = 256;
+    dirent* entries = new dirent[MAX_ENTRIES]; // Heap allocation to avoid stack overflow
 
-    auto res = syscalls::read_dir(path, entries, 256);
+    auto res = syscalls::read_dir(path, entries, MAX_ENTRIES);
     if (res.code != syscall_result_code::ok) {
         console::get().write("ls: failed to read directory\n");
+        delete[] entries;
         return;
     }
 
@@ -43,6 +45,8 @@ static void ls(int long_flag, const char *path)
             console::get().writef("%s\n", entries[i].name);
         }
     }
+    
+    delete[] entries;
 }
 
 /*
