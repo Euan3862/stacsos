@@ -53,7 +53,7 @@ static void ls(int long_flag, const char *path)
         return;
     }
 
-    //Sort the entries before displaying them
+    //Sorting the entries before displaying them
     if (res.length > 1) {
         sort_entries(entries, res.length);
     }
