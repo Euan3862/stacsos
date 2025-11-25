@@ -42,7 +42,13 @@ static void ls(int long_flag, const char *path)
 
     auto res = syscalls::read_dir(path, entries, MAX_ENTRIES);
     if (res.code != syscall_result_code::ok) {
-        console::get().write("ls: failed to read directory\n");
+        if (res.code == syscall_result_code::not_found) {
+            console::get().write("ls: directory not found\n");
+        } else if (res.code == syscall_result_code::not_supported) {
+            console::get().write("ls: not a directory\n");
+        } else {
+            console::get().write("ls: failed to read directory\n");
+        }
         delete[] entries;
         return;
     }
@@ -101,7 +107,7 @@ int main(const char *cmdline)
     size_t pos = 0;
 
     /*
-    *   Exctracting characters from command line input until a space is reached,
+    *   Extracting characters from command line input until a space is reached,
     *   the end of the string is reached, or until the buffer is full.
     */
     size_t j = 0;
